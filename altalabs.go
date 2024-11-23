@@ -2,8 +2,18 @@ package altalabs
 
 import "net/http"
 
+type Method int
+
+const (
+	METHOD_TOKEN Method = iota
+	METHOD_SRP
+)
+
 type Config struct {
-	Token string
+	Method
+	Token    string
+	Username string
+	Password string
 }
 
 func NewConfig() *Config {
@@ -11,7 +21,15 @@ func NewConfig() *Config {
 }
 
 func (c *Config) WithToken(token string) *Config {
+	c.Method = METHOD_TOKEN
 	c.Token = token
+	return c
+}
+
+func (c *Config) WithSRPAuth(username, password string) *Config {
+	c.Method = METHOD_SRP
+	c.Username = username
+	c.Password = password
 	return c
 }
 
