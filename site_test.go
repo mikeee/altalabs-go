@@ -249,8 +249,15 @@ func TestSite(t *testing.T) {
 }`
 	t.Run("Test site", func(t *testing.T) {
 		var site Site
-		err := site.UnmarshalJSON(strings.NewReader(jsonData))
+		err := site.Unmarshal(strings.NewReader(jsonData))
 		require.NoError(t, err, "error unmarshalling detailed site information")
 		assert.Equal(t, "auto", site.DhcpGuard)
+	})
+
+	t.Run("Test invalid json", func(t *testing.T) {
+		var site Site
+		err := site.Unmarshal(strings.NewReader("test"))
+		require.Error(t, err, "error unmarshalling detailed site information")
+		assert.NotEqual(t, true, site.AllowNewUsers)
 	})
 }

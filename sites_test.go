@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Testsite(t *testing.T) {
+func TestSiteList(t *testing.T) {
 	// Parse json into a site
 	jsonData := `
 [
@@ -149,8 +149,16 @@ func TestSites(t *testing.T) {
 	t.Run("Sites should be valid", func(t *testing.T) {
 		var sites Sites
 
-		err := sites.UnmarshalJSON(strings.NewReader(jsonData))
+		err := sites.Unmarshal(strings.NewReader(jsonData))
 		require.NoError(t, err, "error unmarshalling json")
 		assert.Equal(t, "office", sites[1].Name)
+	})
+
+	t.Run("Sites unmarshal should fail with invalid json", func(t *testing.T) {
+		var sites Sites
+
+		err := sites.Unmarshal(strings.NewReader("test"))
+		require.Error(t, err, "error unmarshalling json")
+		assert.Empty(t, sites)
 	})
 }

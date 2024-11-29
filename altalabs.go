@@ -25,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider/types"
 	"io"
+	"log"
 	"net/http"
 	"time"
 )
@@ -145,30 +146,30 @@ func (a *AuthClient) GetIDToken() string {
 	return ""
 }
 
-type altaClient struct {
+type AltaClient struct {
 	client     *http.Client
 	authClient *AuthClient
 }
 
-func NewAltaClient(username, password string) (*altaClient, error) {
+func NewAltaClient(username, password string) (*AltaClient, error) {
 	authClient, err := NewAuthClient(COGNITO_REGION)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create auth client: %w", err)
 	}
 
-	config := NewConfig().WithSRPAuth(username, password)
+	clientConfig := NewConfig().WithSRPAuth(username, password)
 
-	if err := authClient.SignIn(config); err != nil {
+	if err := authClient.SignIn(clientConfig); err != nil {
 		return nil, fmt.Errorf("failed to sign in: %w", err)
 	}
 
-	return &altaClient{
+	return &AltaClient{
 		client:     &http.Client{},
 		authClient: authClient,
 	}, nil
 }
 
-func (a *altaClient) request(method, url string, body io.Reader) (*http.Request, error) {
+func (a *AltaClient) request(method, url string, body io.Reader) (*http.Request, error) {
 	req, err := http.NewRequest(method, API_BASE_URL+url, body)
 	if err != nil {
 		return nil, err
@@ -177,7 +178,7 @@ func (a *altaClient) request(method, url string, body io.Reader) (*http.Request,
 	return req, nil
 }
 
-func (a *altaClient) getRequest(path string) (*http.Response, error) {
+func (a *AltaClient) getRequest(path string) (*http.Response, error) {
 	req, err := a.request(http.MethodGet, path, nil)
 	if err != nil {
 		return nil, err
@@ -187,7 +188,7 @@ func (a *altaClient) getRequest(path string) (*http.Response, error) {
 	return a.client.Do(req)
 }
 
-func (a *altaClient) ListSites() (Sites, error) {
+func (a *AltaClient) ListSites() (Sites, error) {
 	siteURL := "sites/list"
 
 	resp, err := a.getRequest(siteURL)
@@ -195,18 +196,16 @@ func (a *altaClient) ListSites() (Sites, error) {
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Fatalf("failed to close response body: %v", err)
+		}
+	}()
 
 	var sites = make(Sites, 0)
-	if err := sites.UnmarshalJSON(resp.Body); err != nil {
+	if err := sites.Unmarshal(resp.Body); err != nil {
 		return nil, fmt.Errorf("failed to decode sites: %w", err)
 	}
 
 	return sites, nil
 }
-
-type AltaClient interface {
-	ListSites() (Sites, error)
-}
-
-var _ AltaClient = &altaClient{}

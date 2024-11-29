@@ -38,9 +38,6 @@ type sitePerm struct {
 	UnlockedPasswords bool `json:"unlockedPasswords"`
 }
 
-func (s *Sites) UnmarshalJSON(reader io.Reader) error {
-	if err := json.NewDecoder(reader).Decode(s); err != nil {
-		return err
-	}
-	return nil
+func (s *Sites) Unmarshal(reader io.Reader) error {
+	return json.NewDecoder(reader).Decode(s)
 }

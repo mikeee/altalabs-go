@@ -81,6 +81,6 @@ type Site struct {
 	AllowNewUsers bool   `json:"allowNewUsers"`
 }
 
-func (s *Site) UnmarshalJSON(reader io.Reader) error {
+func (s *Site) Unmarshal(reader io.Reader) error {
 	return json.NewDecoder(reader).Decode(s)
 }
