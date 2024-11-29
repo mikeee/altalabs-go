@@ -12,20 +12,37 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package altalabs
 
-import "net/http"
+import (
+	"context"
+	"errors"
+	"fmt"
+	cognitosrp "github.com/alexrudd/cognito-srp/v4"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider"
+	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider/types"
+	"io"
+	"net/http"
+	"time"
+)
+
+const (
+	API_BASE_URL = "https://manage.alta.inc/api/"
+)
 
 type Method int
 
 const (
-	METHOD_TOKEN Method = iota
-	METHOD_SRP
+	ALTA_CLIENT_ID = "24bk8l088t5bf31nuceoqb503q"
+
+	COGNITO_REGION       = "us-east-1"
+	COGNITO_USER_POOL_ID = "4QbA7N3Uy"
 )
 
 type Config struct {
-	Method
-	Token    string
 	Username string
 	Password string
 }
@@ -34,31 +51,162 @@ func NewConfig() *Config {
 	return &Config{}
 }
 
-func (c *Config) WithToken(token string) *Config {
-	c.Method = METHOD_TOKEN
-	c.Token = token
-	return c
-}
-
 func (c *Config) WithSRPAuth(username, password string) *Config {
-	c.Method = METHOD_SRP
 	c.Username = username
 	c.Password = password
 	return c
 }
 
-type altaClient struct {
-	*http.Client
-	*Config
+type authConfig struct {
+	userPoolID   string
+	clientID     string
+	clientSecret *string
 }
 
-func (a *altaClient) ListSites() (*Sites, error) {
-	//TODO implement me
-	panic("implement me")
+type AuthClient struct {
+	*authConfig
+	userConfig Config
+	cognito    *cognitoidentityprovider.Client
+	auth       *types.AuthenticationResultType
+}
+
+func NewAuthClient(region string) (*AuthClient, error) {
+	authConfig := authConfig{
+		userPoolID:   COGNITO_REGION + "_" + COGNITO_USER_POOL_ID,
+		clientID:     ALTA_CLIENT_ID,
+		clientSecret: nil,
+	}
+
+	awsConfig, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
+	if err != nil {
+		return nil, fmt.Errorf("failed to load aws config: %w", err)
+	}
+
+	return &AuthClient{
+		authConfig: &authConfig,
+		cognito:    cognitoidentityprovider.NewFromConfig(awsConfig),
+	}, nil
+}
+
+func (a *AuthClient) SignIn(config *Config) error {
+	srp, err := cognitosrp.NewCognitoSRP(config.Username, config.Password, a.userPoolID, a.clientID, a.clientSecret)
+	if err != nil {
+		return fmt.Errorf("failed to create cognito srp: %w", err)
+	}
+
+	resp, err := a.cognito.InitiateAuth(context.TODO(), &cognitoidentityprovider.InitiateAuthInput{
+		AuthFlow:       types.AuthFlowTypeUserSrpAuth,
+		ClientId:       &a.clientID,
+		AuthParameters: srp.GetAuthParams(),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to initiate auth: %w", err)
+	}
+
+	switch resp.ChallengeName {
+	case types.ChallengeNameTypePasswordVerifier:
+		respPV, err := srp.PasswordVerifierChallenge(resp.ChallengeParameters, time.Now())
+		if err != nil {
+			return fmt.Errorf("failed to verify password: %w", err)
+		}
+
+		respAuth, err := a.cognito.RespondToAuthChallenge(context.TODO(), &cognitoidentityprovider.RespondToAuthChallengeInput{
+			ChallengeName:      types.ChallengeNameTypePasswordVerifier,
+			ClientId:           aws.String(srp.GetClientId()),
+			ChallengeResponses: respPV,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to respond to auth challenge: %w", err)
+		}
+
+		a.auth = respAuth.AuthenticationResult
+		a.userConfig = *config
+
+		return nil
+
+	default:
+		return errors.New("Unhandled auth challenge received: " + string(resp.ChallengeName))
+	}
+}
+
+func (a *AuthClient) RefreshAuth() error {
+	if err := a.SignIn(&a.userConfig); err != nil {
+		return fmt.Errorf("failed to refresh auth: %w", err)
+	}
+
+	return nil
+}
+
+func (a *AuthClient) GetIDToken() string {
+	if a.auth != nil {
+		return *a.auth.IdToken
+	}
+
+	return ""
+}
+
+type altaClient struct {
+	client     *http.Client
+	authClient *AuthClient
+}
+
+func NewAltaClient(username, password string) (*altaClient, error) {
+	authClient, err := NewAuthClient(COGNITO_REGION)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create auth client: %w", err)
+	}
+
+	config := NewConfig().WithSRPAuth(username, password)
+
+	if err := authClient.SignIn(config); err != nil {
+		return nil, fmt.Errorf("failed to sign in: %w", err)
+	}
+
+	return &altaClient{
+		client:     &http.Client{},
+		authClient: authClient,
+	}, nil
+}
+
+func (a *altaClient) request(method, url string, body io.Reader) (*http.Request, error) {
+	req, err := http.NewRequest(method, API_BASE_URL+url, body)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+func (a *altaClient) getRequest(path string) (*http.Response, error) {
+	req, err := a.request(http.MethodGet, path, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Token", a.authClient.GetIDToken())
+
+	return a.client.Do(req)
+}
+
+func (a *altaClient) ListSites() (Sites, error) {
+	siteURL := "sites/list"
+
+	resp, err := a.getRequest(siteURL)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	var sites = make(Sites, 0)
+	if err := sites.UnmarshalJSON(resp.Body); err != nil {
+		return nil, fmt.Errorf("failed to decode sites: %w", err)
+	}
+
+	return sites, nil
 }
 
 type AltaClient interface {
-	ListSites() (*Sites, error)
+	ListSites() (Sites, error)
 }
 
 var _ AltaClient = &altaClient{}

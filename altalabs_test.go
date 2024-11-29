@@ -12,4 +12,22 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package altalabs
+
+import (
+	"github.com/stretchr/testify/assert"
+	"testing"
+)
+
+func TestConfig(t *testing.T) {
+	configExample := &Config{
+		Username: "username",
+		Password: "password",
+	}
+	t.Run("Config should be valid", func(t *testing.T) {
+		config := NewConfig().WithSRPAuth(configExample.Username, configExample.Password)
+
+		assert.Equal(t, configExample, config)
+	})
+}

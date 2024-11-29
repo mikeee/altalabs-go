@@ -12,23 +12,35 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package altalabs
 
+import (
+	"encoding/json"
+	"io"
+)
+
+type Sites []Site
+
 type Site struct {
-	ID       string        `json:"id"`
-	Name     string        `json:"name"`
-	Icon     string        `json:"icon"`
-	Devices  []interface{} `json:"devices"` // TODO: implement devices struct
-	Online   int           `json:"online"`
-	Emails   []string      `json:"emails"`
-	Identity struct {
-		Email             string `json:"email"`
-		Admin             bool   `json:"admin"`
-		AllPasswords      bool   `json:"allPasswords"`
-		UnlockedPasswords bool   `json:"unlockedPasswords"`
-	} `json:"perms"`
+	ID      string              `json:"id"`
+	Name    string              `json:"name"`
+	Icon    *string             `json:"icon"`
+	Devices []interface{}       `json:"devices"` // TODO: implement devices struct
+	Online  int                 `json:"online"`
+	Emails  []string            `json:"emails"`
+	Perms   map[string]SitePerm `json:"perms"`
 }
 
-type Sites map[string]Site
+type SitePerm struct {
+	Admin             bool `json:"admin"`
+	AllPasswords      bool `json:"allPasswords"`
+	UnlockedPasswords bool `json:"unlockedPasswords"`
+}
 
-// TODO: unmarshal sites into a map by string rather than ID
+func (s *Sites) UnmarshalJSON(reader io.Reader) error {
+	if err := json.NewDecoder(reader).Decode(s); err != nil {
+		return err
+	}
+	return nil
+}
