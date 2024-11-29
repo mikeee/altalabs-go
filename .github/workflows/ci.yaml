@@ -64,6 +64,10 @@ jobs:
     name: E2E (Cloud) Test
     runs-on: ubuntu-latest
 
+    env:
+      SDK_ALTA_USER: ${{ secrets.SDK_ALTA_USER }}
+      SDK_ALTA_PASS: ${{ secrets.SDK_ALTA_PASS }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -86,6 +90,10 @@ jobs:
   run-example:
     name: Run example/basic/main.go
     runs-on: ubuntu-latest
+
+    env:
+      SDK_ALTA_USER: ${{ secrets.SDK_ALTA_USER }}
+      SDK_ALTA_PASS: ${{ secrets.SDK_ALTA_PASS }}
 
     steps:
       - name: Checkout
