@@ -30,7 +30,7 @@ func Test_SSID(t *testing.T) {
 		panic(err)
 	}
 
-	ssidList, err := client.GetSSIDs()
+	ssidList, err := client.ListSSIDs()
 	if err != nil {
 		panic(err)
 	}
