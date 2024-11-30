@@ -32,3 +32,15 @@ type sitePerm struct {
 	AllPasswords      bool `json:"allPasswords"`
 	UnlockedPasswords bool `json:"unlockedPasswords"`
 }
+
+func (a *AltaClient) ListSites() (Sites, error) {
+	siteURL := "sites/list"
+
+	var sites = make(Sites, 0)
+
+	if err := a.getRequest(siteURL, &sites); err != nil {
+		return nil, err
+	}
+
+	return sites, nil
+}

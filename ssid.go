@@ -68,11 +68,11 @@ type SSID struct {
 	NotifiedTemplate interface{} `json:"notifiedTemplate"`
 }
 
-func (c *AltaClient) GetSSIDs() (SSIDList, error) {
+func (a *AltaClient) GetSSIDs() (SSIDList, error) {
 	URL := "wifi/ssid/list"
 
 	var ssidList SSIDList
-	err := c.getRequest(URL, &ssidList)
+	err := a.getRequest(URL, &ssidList)
 
 	if err != nil {
 		return SSIDList{}, err

@@ -204,15 +204,3 @@ func (a *AltaClient) getRequest(path string, dest interface{}) error {
 
 	return nil
 }
-
-func (a *AltaClient) ListSites() (Sites, error) {
-	siteURL := "sites/list"
-
-	var sites = make(Sites, 0)
-
-	if err := a.getRequest(siteURL, &sites); err != nil {
-		return nil, err
-	}
-
-	return sites, nil
-}
