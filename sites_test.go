@@ -17,7 +17,6 @@ package altalabs
 
 import (
 	"encoding/json"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -149,7 +148,7 @@ func TestSites(t *testing.T) {
 	t.Run("Sites should be valid", func(t *testing.T) {
 		var sites Sites
 
-		err := sites.Unmarshal(strings.NewReader(jsonData))
+		err := json.Unmarshal([]byte(jsonData), &sites)
 		require.NoError(t, err, "error unmarshalling json")
 		assert.Equal(t, "office", sites[1].Name)
 	})
@@ -157,7 +156,7 @@ func TestSites(t *testing.T) {
 	t.Run("Sites unmarshal should fail with invalid json", func(t *testing.T) {
 		var sites Sites
 
-		err := sites.Unmarshal(strings.NewReader("test"))
+		err := json.Unmarshal([]byte("test"), &sites)
 		require.Error(t, err, "error unmarshalling json")
 		assert.Empty(t, sites)
 	})

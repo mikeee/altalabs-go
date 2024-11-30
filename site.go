@@ -15,11 +15,6 @@ limitations under the License.
 
 package altalabs
 
-import (
-	"encoding/json"
-	"io"
-)
-
 type Site struct {
 	ID          string   `json:"id"`
 	Tz          string   `json:"tz"`
@@ -57,8 +52,4 @@ type Site struct {
 	Width2            any      `json:"width2"`
 	Width5            any      `json:"width5"`
 	AllowNewUsers     bool     `json:"allowNewUsers"`
-}
-
-func (s *Site) Unmarshal(reader io.Reader) error {
-	return json.NewDecoder(reader).Decode(s)
 }

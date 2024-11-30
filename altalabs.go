@@ -17,6 +17,7 @@ package altalabs
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	cognitosrp "github.com/alexrudd/cognito-srp/v4"
@@ -178,22 +179,17 @@ func (a *AltaClient) request(method, url string, body io.Reader) (*http.Request,
 	return req, nil
 }
 
-func (a *AltaClient) getRequest(path string) (*http.Response, error) {
+func (a *AltaClient) getRequest(path string, dest interface{}) error {
 	req, err := a.request(http.MethodGet, path, nil)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("failed to create request: %w", err)
 	}
+
 	req.Header.Set("Token", a.authClient.GetIDToken())
 
-	return a.client.Do(req)
-}
-
-func (a *AltaClient) ListSites() (Sites, error) {
-	siteURL := "sites/list"
-
-	resp, err := a.getRequest(siteURL)
+	resp, err := a.client.Do(req)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("request failed: %w", err)
 	}
 
 	defer func() {
@@ -202,9 +198,20 @@ func (a *AltaClient) ListSites() (Sites, error) {
 		}
 	}()
 
+	if err := json.NewDecoder(resp.Body).Decode(dest); err != nil {
+		return fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return nil
+}
+
+func (a *AltaClient) ListSites() (Sites, error) {
+	siteURL := "sites/list"
+
 	var sites = make(Sites, 0)
-	if err := sites.Unmarshal(resp.Body); err != nil {
-		return nil, fmt.Errorf("failed to decode sites: %w", err)
+
+	if err := a.getRequest(siteURL, &sites); err != nil {
+		return nil, err
 	}
 
 	return sites, nil
