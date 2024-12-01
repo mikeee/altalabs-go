@@ -142,3 +142,21 @@ func (a *AltaClient) AddSSID(req NewSSIDRequest) (*string, error) {
 
 	return &resp.ID, nil
 }
+
+// TODO: Consider xnet ssid creation
+
+func (a *AltaClient) DeleteSSID(id string) error {
+	URL := "wifi/ssid/delete"
+
+	req := struct {
+		ID string `json:"id"`
+	}{
+		ID: id,
+	}
+
+	if err := a.postRequest(URL, req, nil); err != nil {
+		return fmt.Errorf("failed to delete SSID: %w", err)
+	}
+
+	return nil
+}
