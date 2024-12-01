@@ -32,7 +32,7 @@ jobs:
         with:
           version: ${{ env.GOLANGCILINT_VERSION }}
           skip-cache: true
-          args: --build-tags allcomponents --timeout=10m
+          args: --timeout=10m
 
   test:
     name: Test

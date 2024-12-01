@@ -16,6 +16,7 @@ limitations under the License.
 package altalabs
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -25,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider/types"
+	"github.com/mikeee/altalabs-go/util"
 	"io"
 	"log"
 	"net/http"
@@ -176,6 +178,8 @@ func (a *AltaClient) request(method, url string, body io.Reader) (*http.Request,
 		return nil, err
 	}
 
+	req.Header.Set("Content-Type", "application/json")
+
 	return req, nil
 }
 
@@ -186,6 +190,45 @@ func (a *AltaClient) getRequest(path string, dest interface{}) error {
 	}
 
 	req.Header.Set("Token", a.authClient.GetIDToken())
+
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Fatalf("failed to close response body: %v", err)
+		}
+	}()
+
+	if err := json.NewDecoder(resp.Body).Decode(dest); err != nil {
+		return fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return nil
+}
+
+func (a *AltaClient) postRequest(path string, payload interface{}, dest interface{}) error {
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload: %w", err)
+	}
+
+	// Append token to the payload/body
+	// TODO: This is a bad idea, refactor this
+	tokenPair, err := util.GenerateTokenPair(a.authClient.GetIDToken())
+	if err != nil {
+		return fmt.Errorf("failed to generate token pair: %w", err)
+	}
+
+	closingBracePosition := bytes.LastIndexByte(body, '}')
+	body = append(body[:closingBracePosition], []byte(tokenPair)...)
+
+	req, err := a.request(http.MethodPost, path, bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
 
 	resp, err := a.client.Do(req)
 	if err != nil {

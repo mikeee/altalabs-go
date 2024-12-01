@@ -15,6 +15,8 @@ limitations under the License.
 
 package altalabs
 
+import "fmt"
+
 type SSIDList struct {
 	SSIDs []SSID `json:"ssids"`
 }
@@ -78,4 +80,65 @@ func (a *AltaClient) ListSSIDs() (SSIDList, error) {
 		return SSIDList{}, err
 	}
 	return ssidList, nil
+}
+
+type NewSSIDRequest struct {
+	Config struct {
+		ID        string `json:"id"`
+		Ssid      string `json:"ssid"`
+		Notes     string `json:"notes"`
+		Security  string `json:"security"`
+		Bands     string `json:"bands"`
+		Passwords []struct {
+			Network       string `json:"network"`
+			Password      string `json:"password"`
+			Vlan          int    `json:"vlan"`
+			DlRate        int    `json:"dlRate"`
+			UlRate        int    `json:"ulRate"`
+			IgnoreHotspot bool   `json:"ignoreHotspot"`
+			IgnoreSched   bool   `json:"ignoreSched"`
+			IgnoreFilter  bool   `json:"ignoreFilter"`
+			Locked        bool   `json:"locked"`
+		} `json:"passwords"`
+		Network           int           `json:"network"`
+		Wpa3              string        `json:"wpa3"`
+		Dtim2             int           `json:"dtim2"`
+		Dtim5             int           `json:"dtim5"`
+		Schedule          string        `json:"schedule"`
+		ScheduleBlocks    []interface{} `json:"scheduleBlocks"` // TODO: Figure out what this is
+		Acl               string        `json:"acl"`
+		AclList           string        `json:"aclList"`
+		Type              string        `json:"type"`
+		Colors            []string      `json:"colors"`
+		RadiusIP          string        `json:"radiusIp"`
+		RadiusSecret      string        `json:"radiusSecret"`
+		RadiusAuthPort    int           `json:"radiusAuthPort"`
+		RadiusAcctPort    int           `json:"radiusAcctPort"`
+		HotspotTitle      string        `json:"hotspotTitle"`
+		HotspotPassword   string        `json:"hotspotPassword"`
+		HotspotTerms      string        `json:"hotspotTerms"`
+		HotspotTermsTitle string        `json:"hotspotTermsTitle"`
+		HotspotFinish     string        `json:"hotspotFinish"`
+		HotspotExt        string        `json:"hotspotExt"`
+		HotspotSecret     string        `json:"hotspotSecret"`
+		HotspotExtAuth    string        `json:"hotspotExtAuth"`
+		PowerSettings     string        `json:"powerSettings"`
+		Sites             []string      `json:"sites"` // ID of the site
+	} `json:"config"`
+}
+
+type NewSSIDResponse struct {
+	ID string `json:"id"`
+}
+
+func (a *AltaClient) AddSSID(req NewSSIDRequest) (*string, error) {
+	URL := "wifi/ssid/add"
+
+	var resp NewSSIDResponse
+
+	if err := a.postRequest(URL, req, &resp); err != nil {
+		return nil, fmt.Errorf("failed to add SSID: %w", err)
+	}
+
+	return &resp.ID, nil
 }

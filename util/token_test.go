@@ -1,5 +1,3 @@
-//go:build e2e
-
 /*
 Copyright 2024 Mike Nguyen (mikeee) <hey@mike.ee>
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,29 +13,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package e2e
+package util
 
 import (
-	"github.com/mikeee/altalabs-go"
 	"github.com/stretchr/testify/assert"
-	"os"
+	"github.com/stretchr/testify/require"
 	"testing"
 )
 
-func Test_SSID(t *testing.T) {
-	client, err := altalabs.NewAltaClient(os.Getenv("SDK_ALTA_USER"), os.Getenv("SDK_ALTA_PASS"))
-	if err != nil {
-		panic(err)
-	}
-
-	ssidList, err := client.ListSSIDs()
-	if err != nil {
-		panic(err)
-	}
-
-	t.Run("GetSSIDs should return a list of SSIDs", func(t *testing.T) {
-		assert.NotEmpty(t, ssidList)
+func TestGenerateTokenPair(t *testing.T) {
+	token := "test"
+	tokenExpected := `,"token":"test"`
+	t.Run("GenerateTokenPair should return a token", func(t *testing.T) {
+		tokenPair, err := GenerateTokenPair(token)
+		require.NoError(t, err)
+		assert.Equal(t, tokenExpected, tokenPair)
 	})
-
-	// TODO: Test add/update/delete methods
 }
