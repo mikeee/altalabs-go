@@ -200,6 +200,10 @@ func (a *AltaClient) getRequest(path string, params, dest interface{}) error {
 		return fmt.Errorf("request failed: %w", err)
 	}
 
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("request failed with status code: %d", resp.StatusCode)
+	}
+
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
 			log.Fatalf("failed to close response body: %v", err)
@@ -237,6 +241,10 @@ func (a *AltaClient) postRequest(path string, payload interface{}, dest interfac
 	resp, err := a.client.Do(req)
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("request failed with status code: %d", resp.StatusCode)
 	}
 
 	defer func() {
