@@ -70,11 +70,11 @@ type SSID struct {
 	NotifiedTemplate interface{} `json:"notifiedTemplate"`
 }
 
-func (a *AltaClient) ListSSIDs() (SSIDList, error) {
+func (a *AltaClient) ListSSID() (SSIDList, error) {
 	URL := "wifi/ssid/list"
 
 	var ssidList SSIDList
-	err := a.getRequest(URL, &ssidList)
+	err := a.getRequest(URL, nil, &ssidList)
 
 	if err != nil {
 		return SSIDList{}, err
@@ -129,6 +129,65 @@ type NewSSIDRequest struct {
 
 type NewSSIDResponse struct {
 	ID string `json:"id"`
+}
+
+type GetSSIDRequest struct {
+	ID string
+}
+
+type GetSSIDResponse struct {
+	Ssid   string   `json:"ssid"`
+	Sites  []string `json:"sites"`
+	Emails []string `json:"emails"`
+	ID     string   `json:"id"`
+	Config struct {
+		ACL       string   `json:"acl"`
+		Type      string   `json:"type"`
+		Wpa3      string   `json:"wpa3"`
+		Bands     string   `json:"bands"`
+		Dtim2     int      `json:"dtim2"`
+		Dtim5     int      `json:"dtim5"`
+		Notes     string   `json:"notes"`
+		Colors    []string `json:"colors"`
+		ACLList   string   `json:"aclList"`
+		Network   int      `json:"network"`
+		RadiusIP  string   `json:"radiusIp"`
+		Schedule  string   `json:"schedule"`
+		Security  string   `json:"security"`
+		Passwords []struct {
+			Network  string `json:"network"`
+			Password string `json:"password"`
+		} `json:"passwords"`
+		HotspotExt        string `json:"hotspotExt"`
+		HotspotType       string `json:"hotspotType"`
+		HotspotTerms      string `json:"hotspotTerms"`
+		HotspotTitle      string `json:"hotspotTitle"`
+		RadiusSecret      string `json:"radiusSecret"`
+		HotspotFinish     string `json:"hotspotFinish"`
+		HotspotSecret     string `json:"hotspotSecret"`
+		PowerSettings     string `json:"powerSettings"`
+		HotspotExtAuth    string `json:"hotspotExtAuth"`
+		RadiusAcctPort    int    `json:"radiusAcctPort"`
+		RadiusAuthPort    int    `json:"radiusAuthPort"`
+		ScheduleBlocks    []any  `json:"scheduleBlocks"`
+		HotspotPassword   string `json:"hotspotPassword"`
+		HotspotTermsTitle string `json:"hotspotTermsTitle"`
+	} `json:"config"`
+	Ftkey            string `json:"ftkey"`
+	NotifiedTemplate any    `json:"notifiedTemplate"`
+}
+
+func (a *AltaClient) GetSSID(id string) (*GetSSIDResponse, error) {
+	URL := "wifi/ssid"
+	var req = GetSSIDRequest{ID: id}
+
+	var resp GetSSIDResponse
+
+	if err := a.getRequest(URL, req, &resp); err != nil {
+		return nil, fmt.Errorf("failed to get SSID: %w", err)
+	}
+
+	return &resp, nil
 }
 
 func (a *AltaClient) AddSSID(req NewSSIDRequest) (*string, error) {

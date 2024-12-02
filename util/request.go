@@ -1,5 +1,3 @@
-//go:build e2e
-
 /*
 Copyright 2024 Mike Nguyen (mikeee) <hey@mike.ee>
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,29 +13,30 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package e2e
+package util
 
 import (
-	"github.com/mikeee/altalabs-go"
-	"github.com/stretchr/testify/assert"
-	"os"
-	"testing"
+	"fmt"
+	"net/url"
+	"reflect"
+	"strings"
 )
 
-func Test_SSID(t *testing.T) {
-	client, err := altalabs.NewAltaClient(os.Getenv("SDK_ALTA_USER"), os.Getenv("SDK_ALTA_PASS"))
-	if err != nil {
-		panic(err)
+// StructToParams converts a struct to encoded params for appending to URLs as part of paths.
+func StructToParams(data interface{}) string {
+	values := url.Values{}
+	v := reflect.ValueOf(data)
+	t := reflect.TypeOf(data)
+
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		fieldType := t.Field(i)
+		tag := fieldType.Tag.Get("json")
+		if tag == "" {
+			tag = strings.ToLower(fieldType.Name)
+		}
+		values.Set(tag, fmt.Sprintf("%v", field.Interface()))
 	}
 
-	ssidList, err := client.ListSSID()
-	if err != nil {
-		panic(err)
-	}
-
-	t.Run("ListSSID should return a list of SSIDs", func(t *testing.T) {
-		assert.NotEmpty(t, ssidList)
-	})
-
-	// TODO: Test get/add/update/delete methods
+	return values.Encode()
 }

@@ -38,7 +38,7 @@ func (a *AltaClient) ListSites() (Sites, error) {
 
 	var sites = make(Sites, 0)
 
-	if err := a.getRequest(siteURL, &sites); err != nil {
+	if err := a.getRequest(siteURL, nil, &sites); err != nil {
 		return nil, err
 	}
 

@@ -183,7 +183,11 @@ func (a *AltaClient) request(method, url string, body io.Reader) (*http.Request,
 	return req, nil
 }
 
-func (a *AltaClient) getRequest(path string, dest interface{}) error {
+func (a *AltaClient) getRequest(path string, params, dest interface{}) error {
+	if params != nil {
+		path += "?" + util.StructToParams(params)
+	}
+
 	req, err := a.request(http.MethodGet, path, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
