@@ -177,6 +177,45 @@ type GetSSIDResponse struct {
 	NotifiedTemplate any    `json:"notifiedTemplate"`
 }
 
+type EditSSIDRequest struct {
+	Config struct {
+		ID        string `json:"id,omitempty"`
+		Ssid      string `json:"ssid,omitempty"`
+		Notes     string `json:"notes,omitempty"`
+		Security  string `json:"security,omitempty"`
+		Bands     string `json:"bands,omitempty"`
+		Passwords []struct {
+			Network  string `json:"network,omitempty"`
+			Password string `json:"password,omitempty"`
+		} `json:"passwords,omitempty"`
+		Network           int      `json:"network,omitempty"`
+		Wpa3              string   `json:"wpa3,omitempty"`
+		Dtim2             int      `json:"dtim2,omitempty"`
+		Dtim5             int      `json:"dtim5,omitempty"`
+		Schedule          string   `json:"schedule,omitempty"`
+		ScheduleBlocks    []any    `json:"scheduleBlocks,omitempty"`
+		ACL               string   `json:"acl,omitempty"`
+		ACLList           string   `json:"aclList,omitempty"`
+		Type              string   `json:"type,omitempty"`
+		Colors            []string `json:"colors,omitempty"`
+		RadiusIP          string   `json:"radiusIp,omitempty"`
+		RadiusSecret      string   `json:"radiusSecret,omitempty"`
+		RadiusAuthPort    int      `json:"radiusAuthPort,omitempty"`
+		RadiusAcctPort    int      `json:"radiusAcctPort,omitempty"`
+		HotspotType       string   `json:"hotspotType,omitempty"`
+		HotspotTitle      string   `json:"hotspotTitle,omitempty"`
+		HotspotPassword   string   `json:"hotspotPassword,omitempty"`
+		HotspotTerms      string   `json:"hotspotTerms,omitempty"`
+		HotspotTermsTitle string   `json:"hotspotTermsTitle,omitempty"`
+		HotspotFinish     string   `json:"hotspotFinish,omitempty"`
+		HotspotExt        string   `json:"hotspotExt,omitempty"`
+		HotspotSecret     string   `json:"hotspotSecret,omitempty"`
+		HotspotExtAuth    string   `json:"hotspotExtAuth,omitempty"`
+		PowerSettings     string   `json:"powerSettings,omitempty"`
+		Sites             []string `json:"sites,omitempty"`
+	} `json:"config,omitempty"`
+}
+
 func (a *AltaClient) GetSSID(id string) (*GetSSIDResponse, error) {
 	URL := "wifi/ssid"
 	var req = GetSSIDRequest{ID: id}
@@ -191,7 +230,7 @@ func (a *AltaClient) GetSSID(id string) (*GetSSIDResponse, error) {
 }
 
 func (a *AltaClient) AddSSID(req NewSSIDRequest) (*string, error) {
-	URL := "wifi/ssid/add"
+	URL := "wifi/ssid"
 
 	var resp NewSSIDResponse
 
@@ -200,6 +239,16 @@ func (a *AltaClient) AddSSID(req NewSSIDRequest) (*string, error) {
 	}
 
 	return &resp.ID, nil
+}
+
+func (a *AltaClient) EditSSID(req EditSSIDRequest) error {
+	URL := "wifi/ssid"
+
+	if err := a.postRequest(URL, req, nil); err != nil {
+		return fmt.Errorf("failed to edit SSID: %w", err)
+	}
+
+	return nil
 }
 
 // TODO: Consider xnet ssid creation
