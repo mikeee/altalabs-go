@@ -67,6 +67,7 @@ jobs:
     env:
       SDK_ALTA_USER: ${{ secrets.SDK_ALTA_USER }}
       SDK_ALTA_PASS: ${{ secrets.SDK_ALTA_PASS }}
+      SDK_ALTA_SITE: ${{ secrets.SDK_ALTA_SITE }}
 
     steps:
       - name: Checkout
