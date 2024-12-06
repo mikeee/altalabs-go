@@ -1,3 +1,5 @@
+//go:build e2e
+
 /*
 Copyright 2024 Mike Nguyen (mikeee) <hey@mike.ee>
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,44 +15,38 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package altalabs
+package e2e
 
 import (
+	"github.com/mikeee/altalabs-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"net/http"
-	"net/url"
+	"os"
 	"testing"
 )
 
-func TestConfig(t *testing.T) {
-	configExample := &Config{
-		Username: "username",
-		Password: "password",
-	}
+func Test_AuthClient(t *testing.T) {
+	config := altalabs.NewConfig().WithSRPAuth(os.Getenv("SDK_ALTA_USER"), os.Getenv("SDK_ALTA_PASS"))
 	t.Run("Config should be valid", func(t *testing.T) {
-		config := NewConfig().WithSRPAuth(configExample.Username, configExample.Password)
-
+		configExample := &altalabs.Config{
+			Username: os.Getenv("SDK_ALTA_USER"),
+			Password: os.Getenv("SDK_ALTA_PASS"),
+		}
 		assert.Equal(t, configExample, config)
 	})
-}
-
-func TestAltaClient(t *testing.T) {
-	testClient := AltaClient{
-		client:     nil,
-		authClient: nil,
-	}
-
-	t.Run("Test request builder", func(t *testing.T) {
-		testURL, err := url.Parse("https://manage.alta.inc/api/")
-		require.NoError(t, err, "Failed to parse URL in test request builder")
-		testRequest := http.Request{
-			Method: "GET",
-			URL:    testURL,
-			Body:   nil,
-		}
-		req, err := testClient.request("GET", "https://manage.alta.inc/api/", nil)
+	client, err := altalabs.NewAuthClient(altalabs.COGNITO_REGION)
+	t.Run("Client should be valid", func(t *testing.T) {
 		require.NoError(t, err)
-		assert.Equal(t, testRequest.Method, req.Method)
+		assert.NotNil(t, client)
+	})
+
+	err = client.SignIn(config)
+	t.Run("SignIn should be successful", func(t *testing.T) {
+		require.NoError(t, err)
+	})
+
+	err = client.RefreshAuth()
+	t.Run("RefreshAuth should be successful", func(t *testing.T) {
+		require.NoError(t, err)
 	})
 }

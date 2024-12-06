@@ -13,12 +13,4 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package altalabs
-
-type Distribution string
-
-const (
-	DistributionAP     Distribution = "ap"
-	DistributionSwitch Distribution = "switch"
-	DistributionRouter Distribution = "router"
-)
+package util

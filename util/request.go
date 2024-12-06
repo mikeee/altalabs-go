@@ -13,12 +13,30 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package altalabs
+package util
 
-type Distribution string
-
-const (
-	DistributionAP     Distribution = "ap"
-	DistributionSwitch Distribution = "switch"
-	DistributionRouter Distribution = "router"
+import (
+	"fmt"
+	"net/url"
+	"reflect"
+	"strings"
 )
+
+// StructToParams converts a struct to encoded params for appending to URLs as part of paths.
+func StructToParams(data interface{}) string {
+	values := url.Values{}
+	v := reflect.ValueOf(data)
+	t := reflect.TypeOf(data)
+
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		fieldType := t.Field(i)
+		tag := fieldType.Tag.Get("json")
+		if tag == "" {
+			tag = strings.ToLower(fieldType.Name)
+		}
+		values.Set(tag, fmt.Sprintf("%v", field.Interface()))
+	}
+
+	return values.Encode()
+}

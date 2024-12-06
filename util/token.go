@@ -13,12 +13,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package altalabs
+package util
 
-type Distribution string
-
-const (
-	DistributionAP     Distribution = "ap"
-	DistributionSwitch Distribution = "switch"
-	DistributionRouter Distribution = "router"
+import (
+	"errors"
+	"fmt"
 )
+
+// GenerateTokenPair generates a string suitable to be included in a marshalled JSON object.
+func GenerateTokenPair(token string) (string, error) {
+	if token == "" {
+		return "", errors.New("empty string")
+	}
+
+	return fmt.Sprintf(`,"token":"%s"`, token), nil
+}

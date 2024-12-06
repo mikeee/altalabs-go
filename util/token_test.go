@@ -13,12 +13,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package altalabs
+package util
 
-type Distribution string
-
-const (
-	DistributionAP     Distribution = "ap"
-	DistributionSwitch Distribution = "switch"
-	DistributionRouter Distribution = "router"
+import (
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"testing"
 )
+
+func TestGenerateTokenPair(t *testing.T) {
+	token := "test"
+	tokenExpected := `,"token":"test"`
+	t.Run("GenerateTokenPair should return a token", func(t *testing.T) {
+		tokenPair, err := GenerateTokenPair(token)
+		require.NoError(t, err)
+		assert.Equal(t, tokenExpected, tokenPair)
+	})
+}
