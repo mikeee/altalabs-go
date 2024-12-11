@@ -15,11 +15,6 @@ limitations under the License.
 
 package altalabs
 
-import (
-	"encoding/json"
-	"io"
-)
-
 type Sites []site
 
 type site struct {
@@ -38,9 +33,14 @@ type sitePerm struct {
 	UnlockedPasswords bool `json:"unlockedPasswords"`
 }
 
-func (s *Sites) UnmarshalJSON(reader io.Reader) error {
-	if err := json.NewDecoder(reader).Decode(s); err != nil {
-		return err
+func (a *AltaClient) ListSites() (Sites, error) {
+	siteURL := "sites/list"
+
+	var sites = make(Sites, 0)
+
+	if err := a.getRequest(siteURL, nil, &sites); err != nil {
+		return nil, err
 	}
-	return nil
+
+	return sites, nil
 }

@@ -15,11 +15,6 @@ limitations under the License.
 
 package altalabs
 
-import (
-	"encoding/json"
-	"io"
-)
-
 type Site struct {
 	ID          string   `json:"id"`
 	Tz          string   `json:"tz"`
@@ -31,56 +26,30 @@ type Site struct {
 		List       []string `json:"list"`
 		Selections []string `json:"selections"`
 	} `json:"blockedApps"`
-	Leds              string `json:"leds"`
-	Viewers           any    `json:"viewers"`
-	Vlans             any    `json:"vlans"`
-	PortColors        any    `json:"portColors"`
-	Radii             any    `json:"radii"`
-	Update            bool   `json:"update"`
-	SwitchLeds        string `json:"switchLeds"`
-	SyslogHost        string `json:"syslogHost"`
-	Backnet           any    `json:"backnet"`
-	DpiEngine         bool   `json:"dpiEngine"`
-	StpMode           any    `json:"stpMode"`
-	DisconnectTimeout any    `json:"disconnectTimeout"`
-	Community         string `json:"community"`
-	Username          string `json:"username"`
-	Password          string `json:"password"`
-	Contact           string `json:"contact"`
-	AutoDfs           bool   `json:"autoDfs"`
-	Rchans2           []int  `json:"rchans2"`
-	Rchans5           []int  `json:"rchans5"`
-	Wans              any    `json:"wans"`
-	Firewall          struct {
-		Nat struct {
-			Rules []any `json:"rules"`
-		} `json:"nat"`
-		Firewall struct {
-			Rules []struct {
-				ID          string   `json:"id"`
-				Action      string   `json:"action"`
-				ZoneIn      string   `json:"zoneIn"`
-				IcmpType    []string `json:"icmpType,omitempty"`
-				Protocol    []string `json:"protocol,omitempty"`
-				IPVersion   string   `json:"ipVersion,omitempty"`
-				Description string   `json:"description,omitempty"`
-				Destination struct {
-					Port any `json:"port"` // FIXME: The port can either be a string or int??
-				} `json:"destination,omitempty"`
-				Source struct {
-					Address string `json:"address"`
-				} `json:"source,omitempty"`
-				Limit string `json:"limit,omitempty"`
-			} `json:"rules"`
-		} `json:"firewall"`
-	} `json:"firewall"`
-	DhcpGuard     string `json:"dhcpGuard"`
-	DhcpMacList   any    `json:"dhcpMacList"`
-	Width2        any    `json:"width2"`
-	Width5        any    `json:"width5"`
-	AllowNewUsers bool   `json:"allowNewUsers"`
-}
-
-func (s *Site) UnmarshalJSON(reader io.Reader) error {
-	return json.NewDecoder(reader).Decode(s)
+	Leds              string   `json:"leds"`
+	Viewers           any      `json:"viewers"`
+	Vlans             any      `json:"vlans"`
+	PortColors        any      `json:"portColors"`
+	Radii             any      `json:"radii"`
+	Update            bool     `json:"update"`
+	SwitchLeds        string   `json:"switchLeds"`
+	SyslogHost        string   `json:"syslogHost"`
+	Backnet           any      `json:"backnet"`
+	DpiEngine         bool     `json:"dpiEngine"`
+	StpMode           any      `json:"stpMode"`
+	DisconnectTimeout any      `json:"disconnectTimeout"`
+	Community         string   `json:"community"`
+	Username          string   `json:"username"`
+	Password          string   `json:"password"`
+	Contact           string   `json:"contact"`
+	AutoDfs           bool     `json:"autoDfs"`
+	Rchans2           []int    `json:"rchans2"`
+	Rchans5           []int    `json:"rchans5"`
+	Wans              any      `json:"wans"`
+	Firewall          Firewall `json:"firewall"`
+	DhcpGuard         string   `json:"dhcpGuard"`
+	DhcpMacList       any      `json:"dhcpMacList"`
+	Width2            any      `json:"width2"`
+	Width5            any      `json:"width5"`
+	AllowNewUsers     bool     `json:"allowNewUsers"`
 }

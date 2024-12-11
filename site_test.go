@@ -16,7 +16,7 @@ limitations under the License.
 package altalabs
 
 import (
-	"strings"
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -249,8 +249,15 @@ func TestSite(t *testing.T) {
 }`
 	t.Run("Test site", func(t *testing.T) {
 		var site Site
-		err := site.UnmarshalJSON(strings.NewReader(jsonData))
+		err := json.Unmarshal([]byte(jsonData), &site)
 		require.NoError(t, err, "error unmarshalling detailed site information")
 		assert.Equal(t, "auto", site.DhcpGuard)
+	})
+
+	t.Run("Test invalid json", func(t *testing.T) {
+		var site Site
+		err := json.Unmarshal([]byte("test"), &site)
+		require.Error(t, err, "error unmarshalling detailed site information")
+		assert.NotEqual(t, true, site.AllowNewUsers)
 	})
 }

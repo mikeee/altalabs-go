@@ -16,7 +16,9 @@ limitations under the License.
 package altalabs
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	cognitosrp "github.com/alexrudd/cognito-srp/v4"
@@ -24,7 +26,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider/types"
+	"github.com/mikeee/altalabs-go/util"
 	"io"
+	"log"
 	"net/http"
 	"time"
 )
@@ -145,68 +149,113 @@ func (a *AuthClient) GetIDToken() string {
 	return ""
 }
 
-type altaClient struct {
+type AltaClient struct {
 	client     *http.Client
 	authClient *AuthClient
 }
 
-func NewAltaClient(username, password string) (*altaClient, error) {
+func NewAltaClient(username, password string) (*AltaClient, error) {
 	authClient, err := NewAuthClient(COGNITO_REGION)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create auth client: %w", err)
 	}
 
-	config := NewConfig().WithSRPAuth(username, password)
+	clientConfig := NewConfig().WithSRPAuth(username, password)
 
-	if err := authClient.SignIn(config); err != nil {
+	if err := authClient.SignIn(clientConfig); err != nil {
 		return nil, fmt.Errorf("failed to sign in: %w", err)
 	}
 
-	return &altaClient{
+	return &AltaClient{
 		client:     &http.Client{},
 		authClient: authClient,
 	}, nil
 }
 
-func (a *altaClient) request(method, url string, body io.Reader) (*http.Request, error) {
+func (a *AltaClient) request(method, url string, body io.Reader) (*http.Request, error) {
 	req, err := http.NewRequest(method, API_BASE_URL+url, body)
 	if err != nil {
 		return nil, err
 	}
 
+	req.Header.Set("Content-Type", "application/json")
+
 	return req, nil
 }
 
-func (a *altaClient) getRequest(path string) (*http.Response, error) {
+func (a *AltaClient) getRequest(path string, params, dest interface{}) error {
+	if params != nil {
+		path += "?" + util.StructToParams(params)
+	}
+
 	req, err := a.request(http.MethodGet, path, nil)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("failed to create request: %w", err)
 	}
+
 	req.Header.Set("Token", a.authClient.GetIDToken())
 
-	return a.client.Do(req)
-}
-
-func (a *altaClient) ListSites() (Sites, error) {
-	siteURL := "sites/list"
-
-	resp, err := a.getRequest(siteURL)
+	resp, err := a.client.Do(req)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("request failed: %w", err)
 	}
 
-	defer resp.Body.Close()
-
-	var sites = make(Sites, 0)
-	if err := sites.UnmarshalJSON(resp.Body); err != nil {
-		return nil, fmt.Errorf("failed to decode sites: %w", err)
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("request failed with status code: %d", resp.StatusCode)
 	}
 
-	return sites, nil
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Fatalf("failed to close response body: %v", err)
+		}
+	}()
+
+	if err := json.NewDecoder(resp.Body).Decode(dest); err != nil {
+		return fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return nil
 }
 
-type AltaClient interface {
-	ListSites() (Sites, error)
-}
+func (a *AltaClient) postRequest(path string, payload interface{}, dest interface{}) error {
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload: %w", err)
+	}
 
-var _ AltaClient = &altaClient{}
+	// Append token to the payload/body
+	// TODO: This is a bad idea, refactor this
+	tokenPair, err := util.GenerateTokenPair(a.authClient.GetIDToken())
+	if err != nil {
+		return fmt.Errorf("failed to generate token pair: %w", err)
+	}
+
+	closingBracePosition := bytes.LastIndexByte(body, '}')
+	body = append(body[:closingBracePosition], []byte(tokenPair)...)
+
+	req, err := a.request(http.MethodPost, path, bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("request failed with status code: %d", resp.StatusCode)
+	}
+
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Fatalf("failed to close response body: %v", err)
+		}
+	}()
+
+	if err := json.NewDecoder(resp.Body).Decode(dest); err != nil {
+		return fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return nil
+}

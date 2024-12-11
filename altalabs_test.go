@@ -17,6 +17,9 @@ package altalabs
 
 import (
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"net/http"
+	"net/url"
 	"testing"
 )
 
@@ -29,5 +32,25 @@ func TestConfig(t *testing.T) {
 		config := NewConfig().WithSRPAuth(configExample.Username, configExample.Password)
 
 		assert.Equal(t, configExample, config)
+	})
+}
+
+func TestAltaClient(t *testing.T) {
+	testClient := AltaClient{
+		client:     nil,
+		authClient: nil,
+	}
+
+	t.Run("Test request builder", func(t *testing.T) {
+		testURL, err := url.Parse("https://manage.alta.inc/api/")
+		require.NoError(t, err, "Failed to parse URL in test request builder")
+		testRequest := http.Request{
+			Method: "GET",
+			URL:    testURL,
+			Body:   nil,
+		}
+		req, err := testClient.request("GET", "https://manage.alta.inc/api/", nil)
+		require.NoError(t, err)
+		assert.Equal(t, testRequest.Method, req.Method)
 	})
 }
