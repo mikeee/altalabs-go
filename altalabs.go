@@ -46,6 +46,10 @@ const (
 	COGNITO_USER_POOL_ID = "4QbA7N3Uy"
 )
 
+const (
+	ERROR_ALTA_UNAUTHORIZED = "Unauthorized"
+)
+
 type Config struct {
 	Username string
 	Password string
@@ -151,7 +155,7 @@ func (a *AuthClient) GetIDToken() string {
 
 type AltaClient struct {
 	client     *http.Client
-	authClient *AuthClient
+	AuthClient *AuthClient
 }
 
 func NewAltaClient(username, password string) (*AltaClient, error) {
@@ -168,7 +172,7 @@ func NewAltaClient(username, password string) (*AltaClient, error) {
 
 	return &AltaClient{
 		client:     &http.Client{},
-		authClient: authClient,
+		AuthClient: authClient,
 	}, nil
 }
 
@@ -193,7 +197,7 @@ func (a *AltaClient) getRequest(path string, params, dest interface{}) error {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("Token", a.authClient.GetIDToken())
+	req.Header.Set("Token", a.AuthClient.GetIDToken())
 
 	resp, err := a.client.Do(req)
 	if err != nil {
@@ -202,6 +206,10 @@ func (a *AltaClient) getRequest(path string, params, dest interface{}) error {
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("request failed with status code: %d", resp.StatusCode)
+	}
+
+	if dest == nil {
+		return nil
 	}
 
 	defer func() {
@@ -225,13 +233,15 @@ func (a *AltaClient) postRequest(path string, payload interface{}, dest interfac
 
 	// Append token to the payload/body
 	// TODO: This is a bad idea, refactor this
-	tokenPair, err := util.GenerateTokenPair(a.authClient.GetIDToken())
+	tokenPair, err := util.GenerateTokenPair(a.AuthClient.GetIDToken())
 	if err != nil {
 		return fmt.Errorf("failed to generate token pair: %w", err)
 	}
 
-	closingBracePosition := bytes.LastIndexByte(body, '}')
-	body = append(body[:closingBracePosition], []byte(tokenPair)...)
+	body, err = util.AppendTokenToJSONBody(body, tokenPair)
+	if err != nil {
+		return fmt.Errorf("failed to append token to json body: %w", err)
+	}
 
 	req, err := a.request(http.MethodPost, path, bytes.NewReader(body))
 	if err != nil {
@@ -245,6 +255,10 @@ func (a *AltaClient) postRequest(path string, payload interface{}, dest interfac
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("request failed with status code: %d", resp.StatusCode)
+	}
+
+	if dest == nil {
+		return err
 	}
 
 	defer func() {

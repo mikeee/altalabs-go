@@ -23,10 +23,22 @@ import (
 
 func TestGenerateTokenPair(t *testing.T) {
 	token := "test"
-	tokenExpected := `,"token":"test"`
+	tokenExpected := `"token":"test"`
 	t.Run("GenerateTokenPair should return a token", func(t *testing.T) {
 		tokenPair, err := GenerateTokenPair(token)
 		require.NoError(t, err)
 		assert.Equal(t, tokenExpected, tokenPair)
+	})
+}
+
+func TestAppendTokenToJSONBody(t *testing.T) {
+	body := []byte(`{"test":"test"}`)
+	token := `"token":"token"`
+	bodyExpected := []byte(`{"test":"test","token":"token"}`)
+
+	t.Run("AppendTokenToJSONBody should append a token to a JSON body", func(t *testing.T) {
+		bodyWithToken, err := AppendTokenToJSONBody(body, token)
+		require.NoError(t, err)
+		assert.Equal(t, bodyExpected, bodyWithToken)
 	})
 }
