@@ -26,5 +26,13 @@ func GenerateTokenPair(token string) (string, error) {
 		return "", errors.New("empty string")
 	}
 
-	return fmt.Sprintf(`,"token":"%s"`, token), nil
+	return fmt.Sprintf(`"token":"%s"`, token), nil
+}
+
+func AppendTokenToJSONBody(body []byte, token string) ([]byte, error) {
+	if token == "" {
+		return nil, errors.New("empty string")
+	}
+
+	return append(body[:len(body)-1], []byte(fmt.Sprintf(`,%s}`, token))...), nil
 }

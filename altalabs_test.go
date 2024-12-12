@@ -38,7 +38,7 @@ func TestConfig(t *testing.T) {
 func TestAltaClient(t *testing.T) {
 	testClient := AltaClient{
 		client:     nil,
-		authClient: nil,
+		AuthClient: nil,
 	}
 
 	t.Run("Test request builder", func(t *testing.T) {
