@@ -16,11 +16,17 @@ limitations under the License.
 package altalabs
 
 import (
+	"context"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider"
+	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"io"
 	"net/http"
 	"net/url"
 	"testing"
+	"time"
 )
 
 func TestConfig(t *testing.T) {
@@ -29,15 +35,41 @@ func TestConfig(t *testing.T) {
 		Password: "password",
 	}
 	t.Run("Config should be valid", func(t *testing.T) {
-		config := NewConfig().WithSRPAuth(configExample.Username, configExample.Password)
+		testConfig := NewConfig().WithSRPAuth(configExample.Username, configExample.Password)
 
-		assert.Equal(t, configExample, config)
+		assert.Equal(t, configExample, testConfig)
+	})
+}
+
+func TestAuthClient(t *testing.T) {
+	testAuth := &AuthClient{
+		authConfig: nil,
+		userConfig: &Config{},
+		cognito:    nil,
+		auth: &types.AuthenticationResultType{
+			AccessToken:       nil,
+			ExpiresIn:         0,
+			IdToken:           nil,
+			NewDeviceMetadata: nil,
+			RefreshToken:      nil,
+			TokenType:         nil,
+		},
+	}
+
+	t.Run("Test expiry retrieval", func(t *testing.T) {
+		testAuth.auth.ExpiresIn = int32(time.Now().Unix()) - 10 // Insert a valid expiry
+		assert.Equal(t, testAuth.auth.ExpiresIn, testAuth.GetExpiry())
 	})
 }
 
 func TestAltaClient(t *testing.T) {
 	testClient := AltaClient{
-		client:     nil,
+		client: &http.Client{
+			Transport:     http.DefaultTransport,
+			CheckRedirect: nil,
+			Jar:           nil,
+			Timeout:       0,
+		},
 		AuthClient: nil,
 	}
 
@@ -49,8 +81,103 @@ func TestAltaClient(t *testing.T) {
 			URL:    testURL,
 			Body:   nil,
 		}
-		req, err := testClient.request("GET", "https://manage.alta.inc/api/", nil)
+
+		testString := "abc123"
+		testIDToken := "id_token"
+
+		cognitoConfig, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-1"))
 		require.NoError(t, err)
-		assert.Equal(t, testRequest.Method, req.Method)
+
+		testClient.AuthClient = &AuthClient{
+			authConfig: &authConfig{
+				userPoolID:   "abc_123",
+				clientID:     testString,
+				clientSecret: &testString,
+			},
+			userConfig: &Config{
+				Username: "",
+				Password: "",
+			},
+			cognito: cognitoidentityprovider.NewFromConfig(cognitoConfig),
+			auth: &types.AuthenticationResultType{
+				AccessToken: &testString,
+				ExpiresIn:   int32(time.Now().Unix()) + 10, // Insert a valid expiry
+				IdToken:     &testIDToken,
+				NewDeviceMetadata: &types.NewDeviceMetadataType{
+					DeviceGroupKey: &testString,
+					DeviceKey:      &testString,
+				},
+				RefreshToken: &testString,
+				TokenType:    &testString,
+			},
+		}
+
+		t.Run("GET-style request", func(t *testing.T) {
+
+			req, err := testClient.request("GET", "https://manage.alta.inc/api/", nil)
+			require.NoError(t, err)
+			assert.Equal(t, testRequest.Method, req.Method)
+			assert.Equal(t, testRequest.URL.Host, req.URL.Host)
+			assert.Equal(t, testRequest.Body, req.Body)
+		})
+
+		t.Run("POST-style request", func(t *testing.T) {
+			serialisedBodyBytes := []byte(`{"key":"value"}`)
+			postBodyBytes := []byte(`{"key":"value","token":"` + testIDToken + `"}`)
+
+			req, err := testClient.request("POST", "https://manage.alta.inc/api/", serialisedBodyBytes)
+			require.NoError(t, err)
+			assert.Equal(t, testRequest.Method, req.Method)
+			assert.Equal(t, testRequest.URL.Host, req.URL.Host)
+
+			body, errReadBody := io.ReadAll(req.Body)
+			require.NoError(t, errReadBody)
+			errCloseBody := req.Body.Close()
+			require.NoError(t, errCloseBody)
+			assert.Equal(t, postBodyBytes, body, "POST-style request body is not as expected")
+		})
+	})
+
+	t.Run("Test checkToken", func(t *testing.T) {
+		t.Run("unexpired", func(t *testing.T) {
+			testClient.AuthClient = &AuthClient{
+				authConfig: &authConfig{
+					userPoolID:   "",
+					clientID:     "",
+					clientSecret: nil,
+				},
+				userConfig: &Config{},
+				cognito:    nil,
+				auth: &types.AuthenticationResultType{
+					AccessToken:       nil,
+					ExpiresIn:         int32(time.Now().Unix()) + 10, // Insert a valid expiry
+					IdToken:           nil,
+					NewDeviceMetadata: nil,
+					RefreshToken:      nil,
+					TokenType:         nil,
+				},
+			}
+			err := testClient.checkToken()
+			require.NoError(t, err)
+		})
+
+		t.Run("expired", func(t *testing.T) {
+
+			testClient.AuthClient = &AuthClient{
+				authConfig: nil,
+				userConfig: &Config{},
+				cognito:    nil,
+				auth: &types.AuthenticationResultType{
+					AccessToken:       nil,
+					ExpiresIn:         int32(time.Now().Unix()) - 10, // Insert a valid expiry
+					IdToken:           nil,
+					NewDeviceMetadata: nil,
+					RefreshToken:      nil,
+					TokenType:         nil,
+				},
+			}
+			err := testClient.checkToken()
+			require.Error(t, err)
+		})
 	})
 }

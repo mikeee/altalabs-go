@@ -29,6 +29,7 @@ import (
 	"github.com/mikeee/altalabs-go/util"
 	"io"
 	"log"
+	"log/slog"
 	"net/http"
 	"time"
 )
@@ -44,10 +45,6 @@ const (
 
 	COGNITO_REGION       = "us-east-1"
 	COGNITO_USER_POOL_ID = "4QbA7N3Uy"
-)
-
-const (
-	ERROR_ALTA_UNAUTHORIZED = "Unauthorized"
 )
 
 type Config struct {
@@ -73,7 +70,7 @@ type authConfig struct {
 
 type AuthClient struct {
 	*authConfig
-	userConfig Config
+	userConfig *Config
 	cognito    *cognitoidentityprovider.Client
 	auth       *types.AuthenticationResultType
 }
@@ -96,15 +93,18 @@ func NewAuthClient(region string) (*AuthClient, error) {
 	}, nil
 }
 
-func (a *AuthClient) SignIn(config *Config) error {
-	srp, err := cognitosrp.NewCognitoSRP(config.Username, config.Password, a.userPoolID, a.clientID, a.clientSecret)
+func (auth *AuthClient) SignIn(config *Config) error {
+	if config == nil {
+		return errors.New("config is nil")
+	}
+	srp, err := cognitosrp.NewCognitoSRP(config.Username, config.Password, auth.userPoolID, auth.clientID, auth.clientSecret)
 	if err != nil {
 		return fmt.Errorf("failed to create cognito srp: %w", err)
 	}
 
-	resp, err := a.cognito.InitiateAuth(context.TODO(), &cognitoidentityprovider.InitiateAuthInput{
+	resp, err := auth.cognito.InitiateAuth(context.TODO(), &cognitoidentityprovider.InitiateAuthInput{
 		AuthFlow:       types.AuthFlowTypeUserSrpAuth,
-		ClientId:       &a.clientID,
+		ClientId:       &auth.clientID,
 		AuthParameters: srp.GetAuthParams(),
 	})
 	if err != nil {
@@ -118,7 +118,7 @@ func (a *AuthClient) SignIn(config *Config) error {
 			return fmt.Errorf("failed to verify password: %w", err)
 		}
 
-		respAuth, err := a.cognito.RespondToAuthChallenge(context.TODO(), &cognitoidentityprovider.RespondToAuthChallengeInput{
+		respAuth, err := auth.cognito.RespondToAuthChallenge(context.TODO(), &cognitoidentityprovider.RespondToAuthChallengeInput{
 			ChallengeName:      types.ChallengeNameTypePasswordVerifier,
 			ClientId:           aws.String(srp.GetClientId()),
 			ChallengeResponses: respPV,
@@ -127,8 +127,8 @@ func (a *AuthClient) SignIn(config *Config) error {
 			return fmt.Errorf("failed to respond to auth challenge: %w", err)
 		}
 
-		a.auth = respAuth.AuthenticationResult
-		a.userConfig = *config
+		auth.auth = respAuth.AuthenticationResult
+		auth.userConfig = config
 
 		return nil
 
@@ -137,20 +137,31 @@ func (a *AuthClient) SignIn(config *Config) error {
 	}
 }
 
-func (a *AuthClient) RefreshAuth() error {
-	if err := a.SignIn(&a.userConfig); err != nil {
+func (auth *AuthClient) RefreshAuth() error {
+	if auth.userConfig == nil {
+		return errors.New("user config is nil")
+	}
+	if err := auth.SignIn(auth.userConfig); err != nil {
 		return fmt.Errorf("failed to refresh auth: %w", err)
 	}
 
 	return nil
 }
 
-func (a *AuthClient) GetIDToken() string {
-	if a.auth != nil {
-		return *a.auth.IdToken
+func (auth *AuthClient) GetIDToken() string {
+	if auth.auth != nil {
+		return *auth.auth.IdToken
 	}
 
 	return ""
+}
+
+func (auth *AuthClient) GetExpiry() int32 {
+	if auth.auth != nil {
+		return auth.auth.ExpiresIn
+	}
+
+	return 0
 }
 
 type AltaClient struct {
@@ -176,8 +187,47 @@ func NewAltaClient(username, password string) (*AltaClient, error) {
 	}, nil
 }
 
-func (a *AltaClient) request(method, url string, body io.Reader) (*http.Request, error) {
-	req, err := http.NewRequest(method, API_BASE_URL+url, body)
+var (
+	ErrorAuthExpired = errors.New("auth token expired")
+)
+
+func (a *AltaClient) checkToken() error {
+	// Check and renew tokens expired or within 5 seconds
+	// TODO: This is a bad idea, refactor this
+	if a.AuthClient.GetExpiry() <= int32(time.Now().Unix())+5 {
+		return ErrorAuthExpired
+	}
+	return nil
+}
+
+func (a *AltaClient) request(method, url string, body []byte) (*http.Request, error) {
+	if err := a.checkToken(); errors.Is(err, ErrorAuthExpired) {
+		slog.Info("Refreshing auth token")
+		if err := a.AuthClient.RefreshAuth(); err != nil {
+			slog.Error("Failed to refresh auth token", slog.String("error", err.Error()))
+		}
+	}
+
+	var reqBodyStream io.Reader
+	var reqBody []byte
+
+	if body != nil {
+		// Append token to the payload/body
+		// TODO: This is a bad idea, refactor this
+		tokenPair, err := util.GenerateTokenPair(a.AuthClient.GetIDToken())
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate token pair: %w", err)
+		}
+
+		reqBody, err = util.AppendTokenToJSONBody(body, tokenPair)
+		if err != nil {
+			return nil, fmt.Errorf("failed to append token to json body: %w", err)
+		}
+
+		reqBodyStream = bytes.NewReader(reqBody)
+	}
+
+	req, err := http.NewRequest(method, API_BASE_URL+url, reqBodyStream)
 	if err != nil {
 		return nil, err
 	}
@@ -231,19 +281,7 @@ func (a *AltaClient) postRequest(path string, payload interface{}, dest interfac
 		return fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
-	// Append token to the payload/body
-	// TODO: This is a bad idea, refactor this
-	tokenPair, err := util.GenerateTokenPair(a.AuthClient.GetIDToken())
-	if err != nil {
-		return fmt.Errorf("failed to generate token pair: %w", err)
-	}
-
-	body, err = util.AppendTokenToJSONBody(body, tokenPair)
-	if err != nil {
-		return fmt.Errorf("failed to append token to json body: %w", err)
-	}
-
-	req, err := a.request(http.MethodPost, path, bytes.NewReader(body))
+	req, err := a.request(http.MethodPost, path, body)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
