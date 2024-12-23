@@ -127,7 +127,7 @@ func TestAltaClient(t *testing.T) {
 
 			req, err := testClient.request("POST", "https://manage.alta.inc/api/", serialisedBodyBytes)
 			require.NoError(t, err)
-			assert.Equal(t, testRequest.Method, req.Method)
+			assert.Equal(t, "POST", req.Method)
 			assert.Equal(t, testRequest.URL.Host, req.URL.Host)
 
 			body, errReadBody := io.ReadAll(req.Body)
