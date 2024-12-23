@@ -125,7 +125,7 @@ func TestAltaClient(t *testing.T) {
 			serialisedBodyBytes := []byte(`{"key":"value"}`)
 			postBodyBytes := []byte(`{"key":"value","token":"` + testIDToken + `"}`)
 
-			req, err := testClient.request("GET", "https://manage.alta.inc/api/", serialisedBodyBytes)
+			req, err := testClient.request("POST", "https://manage.alta.inc/api/", serialisedBodyBytes)
 			require.NoError(t, err)
 			assert.Equal(t, testRequest.Method, req.Method)
 			assert.Equal(t, testRequest.URL.Host, req.URL.Host)
