@@ -193,6 +193,7 @@ var (
 
 func (a *AltaClient) checkToken() error {
 	// Check and renew tokens expired or within 5 seconds
+	// TODO: This is a bad idea, refactor this
 	if a.AuthClient.GetExpiry() <= int32(time.Now().Unix())+5 {
 		return ErrorAuthExpired
 	}
@@ -200,7 +201,7 @@ func (a *AltaClient) checkToken() error {
 }
 
 func (a *AltaClient) request(method, url string, body []byte) (*http.Request, error) {
-	if err := a.checkToken(); !errors.Is(err, ErrorAuthExpired) {
+	if err := a.checkToken(); errors.Is(err, ErrorAuthExpired) {
 		slog.Info("Refreshing auth token")
 		if err := a.AuthClient.RefreshAuth(); err != nil {
 			slog.Error("Failed to refresh auth token", slog.String("error", err.Error()))
