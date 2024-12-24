@@ -6,7 +6,7 @@ require (
 	github.com/alexrudd/cognito-srp/v4 v4.1.0
 	github.com/aws/aws-sdk-go-v2 v1.32.7
 	github.com/aws/aws-sdk-go-v2/config v1.28.7
-	github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider v1.48.2
+	github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider v1.48.3
 	github.com/stretchr/testify v1.10.0
 )
 
