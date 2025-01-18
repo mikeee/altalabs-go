@@ -201,11 +201,12 @@ func (a *AltaClient) checkToken() error {
 }
 
 func (a *AltaClient) request(method, url string, body []byte) (*http.Request, error) {
-	if err := a.checkToken(); errors.Is(err, ErrorAuthExpired) {
-		slog.Info("Refreshing auth token")
+	if err := a.checkToken(); err != nil {
+		slog.Info("Refreshing auth token", slog.String("error", err.Error()))
 		if err := a.AuthClient.RefreshAuth(); err != nil {
 			slog.Error("Failed to refresh auth token", slog.String("error", err.Error()))
 		}
+		slog.Info("Refreshed auth token")
 	}
 
 	var reqBodyStream io.Reader
@@ -241,6 +242,8 @@ func (a *AltaClient) getRequest(path string, params, dest interface{}) error {
 	if params != nil {
 		path += "?" + util.StructToParams(params)
 	}
+
+	slog.Info("GET request", slog.String("path", path))
 
 	req, err := a.request(http.MethodGet, path, nil)
 	if err != nil {

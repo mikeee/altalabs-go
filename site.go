@@ -93,11 +93,27 @@ func (a *AltaClient) CreateSite(name string, opts ...CreateSiteOption) (newSiteR
 	}
 
 	var resp newSiteResponse
-	err := a.postRequest("/sites/new", newSite, &resp)
+	err := a.postRequest("sites/new", newSite, &resp)
 	if err != nil {
 		return newSiteResponse{}, err
 	}
 	return resp, nil
+}
+
+type GetSiteRequest struct {
+	Id string
+}
+
+func (a *AltaClient) GetSite(siteID string) (Site, error) {
+	reqParams := GetSiteRequest{
+		Id: siteID,
+	}
+	var site Site
+	err := a.getRequest("site", reqParams, &site)
+	if err != nil {
+		return Site{}, err
+	}
+	return site, nil
 }
 
 type renameSiteRequest struct {
@@ -137,5 +153,12 @@ func (a *AltaClient) RenameSiteByID(siteID, name string) error {
 		return err
 	}
 
+	return nil
+}
+
+func (a *AltaClient) UpdateSite(site Site) error {
+	if err := a.postRequest("sites/update", site, nil); err != nil {
+		return err
+	}
 	return nil
 }

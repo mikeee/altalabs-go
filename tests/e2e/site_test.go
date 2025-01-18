@@ -61,4 +61,24 @@ func Test_AltaClient_Site(t *testing.T) {
 		})
 
 	})
+
+	t.Run("GetSite should return site", func(t *testing.T) {
+		sites, err := client.ListSites()
+		require.NoError(t, err)
+		require.NotEmpty(t, sites)
+
+		var siteID string
+		for _, site := range sites {
+			if site.Name == "GetSiteTest" {
+				siteID = site.ID
+				break
+			}
+		}
+
+		require.NotEmpty(t, siteID)
+		site, err := client.GetSite(siteID)
+		require.NoError(t, err)
+		require.NotEmpty(t, site)
+		require.Equal(t, "getuser", site.Username)
+	})
 }
