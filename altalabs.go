@@ -47,6 +47,10 @@ const (
 	COGNITO_USER_POOL_ID = "4QbA7N3Uy"
 )
 
+const (
+	API_Unauthorized = "Unauthorized" // API will return a http-400 error with this body in double quotes
+)
+
 type Config struct {
 	Username string
 	Password string
