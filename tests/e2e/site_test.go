@@ -62,6 +62,11 @@ func Test_AltaClient_Site(t *testing.T) {
 
 	})
 
+	// TODO: Implement
+	t.Run("Rename by ID", func(t *testing.T) {
+		t.Skip("Not implemented")
+	})
+
 	t.Run("GetSite should return site", func(t *testing.T) {
 		sites, err := client.ListSites()
 		require.NoError(t, err)
@@ -80,5 +85,13 @@ func Test_AltaClient_Site(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, site)
 		require.Equal(t, "getuser", site.Username)
+	})
+
+	t.Run("UpdateSite should update site", func(t *testing.T) {
+		t.Skip("Not implemented")
+	})
+
+	t.Run("CreateSite should create site", func(t *testing.T) {
+		t.Skip("Not implemented")
 	})
 }
