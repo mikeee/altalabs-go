@@ -42,6 +42,7 @@ func TestConfig(t *testing.T) {
 }
 
 func TestAuthClient(t *testing.T) {
+	expiry := int32(time.Now().Unix()) + 10
 	testAuth := &AuthClient{
 		authConfig: nil,
 		userConfig: &Config{},
@@ -54,11 +55,11 @@ func TestAuthClient(t *testing.T) {
 			RefreshToken:      nil,
 			TokenType:         nil,
 		},
+		expiry: expiry,
 	}
 
 	t.Run("Test expiry retrieval", func(t *testing.T) {
-		testAuth.auth.ExpiresIn = int32(time.Now().Unix()) - 10 // Insert a valid expiry
-		assert.Equal(t, testAuth.auth.ExpiresIn, testAuth.GetExpiry())
+		assert.Equal(t, expiry, testAuth.GetExpiry())
 	})
 }
 
@@ -156,6 +157,7 @@ func TestAltaClient(t *testing.T) {
 					RefreshToken:      nil,
 					TokenType:         nil,
 				},
+				expiry: int32(time.Now().Unix()) + 10,
 			}
 			err := testClient.checkToken()
 			require.NoError(t, err)

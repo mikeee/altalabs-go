@@ -77,6 +77,7 @@ type AuthClient struct {
 	userConfig *Config
 	cognito    *cognitoidentityprovider.Client
 	auth       *types.AuthenticationResultType
+	expiry     int32
 }
 
 func NewAuthClient(region string) (*AuthClient, error) {
@@ -133,7 +134,7 @@ func (auth *AuthClient) SignIn(config *Config) error {
 
 		auth.auth = respAuth.AuthenticationResult
 		auth.userConfig = config
-
+		auth.expiry = int32(time.Now().Unix()) + auth.auth.ExpiresIn
 		return nil
 
 	default:
@@ -162,7 +163,7 @@ func (auth *AuthClient) GetIDToken() string {
 
 func (auth *AuthClient) GetExpiry() int32 {
 	if auth.auth != nil {
-		return auth.auth.ExpiresIn
+		return auth.expiry
 	}
 
 	return 0
@@ -246,8 +247,6 @@ func (a *AltaClient) getRequest(path string, params, dest interface{}) error {
 	if params != nil {
 		path += "?" + util.StructToParams(params)
 	}
-
-	slog.Info("GET request", slog.String("path", path))
 
 	req, err := a.request(http.MethodGet, path, nil)
 	if err != nil {
