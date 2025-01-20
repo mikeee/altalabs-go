@@ -15,6 +15,8 @@ limitations under the License.
 
 package altalabs
 
+import "errors"
+
 type Firewall struct {
 	Nat struct {
 		Rules []any `json:"rules"`
@@ -37,4 +39,26 @@ type Firewall struct {
 			Limit string `json:"limit,omitempty"`
 		} `json:"rules"`
 	} `json:"firewall"`
+}
+
+func (a *AltaClient) GetFirewall(siteID string) (*Firewall, error) {
+	site, err := a.GetSite(siteID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &site.Firewall, nil
+}
+
+func (a *AltaClient) UpdateFirewall() error {
+	return errors.New("not implemented")
+}
+
+func (a *AltaClient) AddFirewallRule() error {
+	return errors.New("not implemented")
+}
+
+func (a *AltaClient) DeleteFirewall() error {
+	// Clear/empty the firewall rules
+	return errors.New("not implemented")
 }
