@@ -104,16 +104,16 @@ type GetSiteRequest struct {
 	Id string
 }
 
-func (a *AltaClient) GetSite(siteID string) (Site, error) {
+func (a *AltaClient) GetSite(siteID string) (*Site, error) {
 	reqParams := GetSiteRequest{
 		Id: siteID,
 	}
 	var site Site
 	err := a.getRequest("site", reqParams, &site)
 	if err != nil {
-		return Site{}, err
+		return nil, err
 	}
-	return site, nil
+	return &site, nil
 }
 
 type renameSiteRequest struct {
