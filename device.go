@@ -39,4 +39,16 @@ func (a *AltaClient) ListDevices(siteName string) (Devices, error) {
 	return devices, nil
 }
 
+// TODO: Refactor this method
+func (a *AltaClient) EditDevice(device Device) error {
+	siteURL := "client/edit"
+
+	// using the Device struct as a temporary request type
+	if err := a.postRequest(siteURL, device, nil); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // TODO: Update devices
