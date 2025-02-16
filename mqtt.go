@@ -25,7 +25,7 @@ import (
 func (a *AltaClient) MqttConn() error {
 	testSite := os.Getenv("SDK_ALTA_SITE")
 
-	token := a.authClient.GetIDToken()
+	token := a.AuthClient.GetIDToken()
 	if token == "" {
 		return fmt.Errorf("token is empty")
 	}
