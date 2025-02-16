@@ -1,6 +1,6 @@
 module github.com/mikeee/altalabs-go
 
-go 1.23.3
+go 1.24.0
 
 require (
 	github.com/alexrudd/cognito-srp/v4 v4.1.0
