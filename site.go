@@ -15,6 +15,10 @@ limitations under the License.
 
 package altalabs
 
+import (
+	"errors"
+)
+
 type Site struct {
 	ID          string   `json:"id"`
 	Tz          string   `json:"tz"`
@@ -52,4 +56,109 @@ type Site struct {
 	Width2            any      `json:"width2"`
 	Width5            any      `json:"width5"`
 	AllowNewUsers     bool     `json:"allowNewUsers"`
+}
+
+type newSiteRequest struct {
+	Icon string `json:"icon"`
+	Name string `json:"name"`
+	Tz   string `json:"tz"`
+}
+
+type newSiteResponse struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type CreateSiteOption func(*newSiteRequest)
+
+func WithSiteIcon(icon string) CreateSiteOption {
+	return func(req *newSiteRequest) {
+		req.Icon = icon
+	}
+}
+
+func WithSiteTz(tz string) CreateSiteOption {
+	return func(req *newSiteRequest) {
+		req.Tz = tz
+	}
+}
+
+func (a *AltaClient) CreateSite(name string, opts ...CreateSiteOption) (newSiteResponse, error) {
+	newSite := newSiteRequest{
+		Name: name,
+	}
+
+	for _, opt := range opts {
+		opt(&newSite)
+	}
+
+	var resp newSiteResponse
+	err := a.postRequest("sites/new", newSite, &resp)
+	if err != nil {
+		return newSiteResponse{}, err
+	}
+	return resp, nil
+}
+
+type GetSiteRequest struct {
+	Id string
+}
+
+func (a *AltaClient) GetSite(siteID string) (*Site, error) {
+	reqParams := GetSiteRequest{
+		Id: siteID,
+	}
+	var site Site
+	err := a.getRequest("site", reqParams, &site)
+	if err != nil {
+		return nil, err
+	}
+	return &site, nil
+}
+
+type renameSiteRequest struct {
+	SiteID string `json:"siteid"`
+	Name   string `json:"name"`
+}
+
+func (a *AltaClient) RenameSite(old, new string) error {
+	sites, err := a.ListSites()
+	if err != nil {
+		return err
+	}
+
+	// find the site id from sites
+	var siteID string
+	for _, site := range sites {
+		if site.Name == old {
+			siteID = site.ID
+			break
+		}
+	}
+
+	if siteID == "" {
+		return errors.New("site not found")
+	}
+
+	return a.RenameSiteByID(siteID, new)
+}
+
+func (a *AltaClient) RenameSiteByID(siteID, name string) error {
+	req := renameSiteRequest{
+		SiteID: siteID,
+		Name:   name,
+	}
+
+	if err := a.postRequest("sites/rename", req, nil); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *AltaClient) UpdateSite(site Site) error {
+	if err := a.postRequest("sites/update", site, nil); err != nil {
+		return err
+	}
+	return nil
 }

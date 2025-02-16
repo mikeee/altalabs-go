@@ -67,7 +67,7 @@ type SSID struct {
 		HotspotTermsTitle string        `json:"hotspotTermsTitle"`
 	} `json:"config"`
 	Ftkey            string      `json:"ftkey"`
-	NotifiedTemplate interface{} `json:"notifiedTemplate"`
+	NotifiedTemplate interface{} `json:"notifiedTemplate"` // TODO: Figure out what this is
 }
 
 func (a *AltaClient) ListSSID() (SSIDList, error) {

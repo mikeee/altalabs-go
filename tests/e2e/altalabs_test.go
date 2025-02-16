@@ -21,6 +21,7 @@ import (
 	"github.com/mikeee/altalabs-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"log"
 	"os"
 	"testing"
 )
@@ -34,19 +35,53 @@ func Test_AuthClient(t *testing.T) {
 		}
 		assert.Equal(t, configExample, config)
 	})
-	client, err := altalabs.NewAuthClient(altalabs.COGNITO_REGION)
+	authClient, err := altalabs.NewAuthClient(altalabs.COGNITO_REGION)
 	t.Run("Client should be valid", func(t *testing.T) {
 		require.NoError(t, err)
-		assert.NotNil(t, client)
+		assert.NotNil(t, authClient)
 	})
 
-	err = client.SignIn(config)
 	t.Run("SignIn should be successful", func(t *testing.T) {
+		err = authClient.SignIn(config)
 		require.NoError(t, err)
 	})
 
-	err = client.RefreshAuth()
 	t.Run("RefreshAuth should be successful", func(t *testing.T) {
+		err = authClient.RefreshAuth()
 		require.NoError(t, err)
 	})
+
+	t.Run("ID Token should be populated", func(t *testing.T) {
+		assert.NotEmpty(t, authClient.GetIDToken())
+	})
+}
+
+func Test_AltaClient(t *testing.T) {
+	client, err := altalabs.NewAltaClient(os.Getenv("SDK_ALTA_USER"), os.Getenv("SDK_ALTA_PASS"))
+
+	t.Run("Client should be valid and be successful with a ListSites request", func(t *testing.T) {
+		require.NoError(t, err)
+		assert.NotNil(t, client)
+
+		sites, err := client.ListSites()
+		require.NoError(t, err)
+		assert.NotEmpty(t, sites)
+	})
+
+	t.Run("Refresh token should be successful with a list sites request", func(t *testing.T) {
+		err = client.AuthClient.RefreshAuth()
+		require.NoError(t, err)
+
+		sites, err := client.ListSites()
+		require.NoError(t, err)
+		assert.NotEmpty(t, sites)
+	})
+}
+
+func SetupTestAltaClient() *altalabs.AltaClient {
+	client, err := altalabs.NewAltaClient(os.Getenv("SDK_ALTA_USER"), os.Getenv("SDK_ALTA_PASS"))
+	if err != nil {
+		log.Panicf("Failed to create client: %v", err)
+	}
+	return client
 }

@@ -82,11 +82,11 @@ jobs:
         run: |
           make test-e2e
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          files: ./coverage-e2e.out
-          token: ${{ secrets.CODECOV_TOKEN }}
+#      - name: Upload coverage to Codecov
+#        uses: codecov/codecov-action@v5
+#        with:
+#          files: ./coverage-e2e.out
+#          token: ${{ secrets.CODECOV_TOKEN }}
 
   run-example:
     name: Run example/basic/main.go

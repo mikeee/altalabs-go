@@ -18,26 +18,16 @@ limitations under the License.
 package e2e
 
 import (
-	"github.com/mikeee/altalabs-go"
-	"github.com/stretchr/testify/assert"
-	"os"
+	"github.com/stretchr/testify/require"
 	"testing"
 )
 
-func Test_AltaClient_SSID(t *testing.T) {
-	client, err := altalabs.NewAltaClient(os.Getenv("SDK_ALTA_USER"), os.Getenv("SDK_ALTA_PASS"))
-	if err != nil {
-		panic(err)
-	}
+func Test_AltaClient_Sites(t *testing.T) {
+	client := SetupTestAltaClient()
 
-	ssidList, err := client.ListSSID()
-	if err != nil {
-		panic(err)
-	}
-
-	t.Run("ListSSID should return a list of SSIDs", func(t *testing.T) {
-		assert.NotEmpty(t, ssidList)
+	t.Run("ListSites should return sites", func(t *testing.T) {
+		sites, err := client.ListSites()
+		require.NoError(t, err)
+		require.NotEmpty(t, sites)
 	})
-
-	// TODO: Test get/add/update/delete methods
 }
