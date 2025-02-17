@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      GOLANGCILINT_VERSION: v1.61.0
+      GOLANGCILINT_VERSION: v1.64.5
 
     steps:
       - name: Checkout
