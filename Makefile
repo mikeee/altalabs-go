@@ -17,7 +17,7 @@ test:
 
 .PHONY: test-e2e
 test-e2e:
-	go test github.com/mikeee/altalabs-go/tests/e2e/ \
+	go test github.com/mikeee/altalabs-go/test/e2e/ \
 			-tags e2e \
 			-count=1 \
 			-covermode=atomic \
