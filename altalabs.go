@@ -21,17 +21,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"log"
+	"log/slog"
+	"net/http"
+	"time"
+
 	cognitosrp "github.com/alexrudd/cognito-srp/v4"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider/types"
 	"github.com/mikeee/altalabs-go/util"
-	"io"
-	"log"
-	"log/slog"
-	"net/http"
-	"time"
 )
 
 const (
@@ -170,11 +171,37 @@ func (auth *AuthClient) GetExpiry() int32 {
 }
 
 type AltaClient struct {
+	Endpoint   string
 	client     *http.Client
 	AuthClient *AuthClient
 }
 
-func NewAltaClient(username, password string) (*AltaClient, error) {
+type newAltaClientOptions func(options *altaClientOptions)
+
+type altaClientOptions struct {
+	Endpoint string // Defaults to API_BASE_URL unless overridden
+}
+
+func WithAltaEndpoint(endpoint string) newAltaClientOptions {
+	return func(options *altaClientOptions) {
+		options.Endpoint = endpoint
+	}
+}
+
+func loadAltaClientOptions(opts ...newAltaClientOptions) *altaClientOptions {
+	options := altaClientOptions{
+		Endpoint: API_BASE_URL,
+	}
+
+	for _, o := range opts {
+		o(&options)
+	}
+	return &options
+}
+
+func NewAltaClient(username string, password string, opts ...newAltaClientOptions) (*AltaClient, error) {
+	options := loadAltaClientOptions(opts...)
+
 	authClient, err := NewAuthClient(COGNITO_REGION)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create auth client: %w", err)
@@ -187,14 +214,13 @@ func NewAltaClient(username, password string) (*AltaClient, error) {
 	}
 
 	return &AltaClient{
+		Endpoint:   options.Endpoint,
 		client:     &http.Client{},
 		AuthClient: authClient,
 	}, nil
 }
 
-var (
-	ErrorAuthExpired = errors.New("auth token expired")
-)
+var ErrorAuthExpired = errors.New("auth token expired")
 
 func (a *AltaClient) checkToken() error {
 	// Check and renew tokens expired or within 5 seconds
@@ -233,7 +259,7 @@ func (a *AltaClient) request(method, url string, body []byte) (*http.Request, er
 		reqBodyStream = bytes.NewReader(reqBody)
 	}
 
-	req, err := http.NewRequest(method, API_BASE_URL+url, reqBodyStream)
+	req, err := http.NewRequest(method, a.Endpoint+url, reqBodyStream)
 	if err != nil {
 		return nil, err
 	}
