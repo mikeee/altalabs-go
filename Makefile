@@ -24,6 +24,15 @@ test-e2e:
 			-coverprofile=coverage-e2e.out \
 			-v
 
+.PHONY: test-e2e-local
+test-e2e-local:
+	go test github.com/mikeee/altalabs-go/test/e2e/local/ \
+			-tags e2e \
+			-count=1 \
+			-covermode=atomic \
+			-coverprofile=coverage-e2e.out \
+			-v
+
 .PHONY: run-example
 run-example:
 	go run examples/basic/main.go

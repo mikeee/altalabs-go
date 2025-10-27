@@ -1,0 +1,22 @@
+services:
+  control:
+    image: altalabs/control:1.1e-amd64
+    container_name: control
+    ports:
+      - "5443:443"
+      - "5080:80"
+      - "5053:53"
+      - "5353:5353"
+    tmpfs:
+      - /run
+      - /run/lock
+    volumes:
+      - /sys/fs/cgroup/access.scope:/sys/fs/cgroup:r
+    extra_hosts:
+      - local.manage.alta.inc:0.0.0.255
+    cgroup: host
+    security_opt:
+      - seccomp=unconfined
+    tty: true
+    stdin_open: true
+    restart: unless-stopped
